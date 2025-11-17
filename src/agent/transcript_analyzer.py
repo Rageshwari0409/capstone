@@ -5,6 +5,7 @@ from typing import Dict, Any, Optional
 from src.utils.config_loader import get_config
 from src.utils.logger import setup_logger
 from src.utils.text_chunker import TextChunker
+from src.utils.retry_handler import retry_llm_call
 
 
 class TranscriptAnalyzer:
@@ -31,7 +32,35 @@ class TranscriptAnalyzer:
 
         self.logger.info(f"LiteLLM configured with Azure OpenAI deployment: {self.deployment_name}")
         self.logger.info(f"LangChain text chunker initialized")
-    
+
+    @retry_llm_call
+    def _call_llm_completion(self, messages, temperature, max_tokens, response_format=None):
+        """Internal method to call LLM with retry logic.
+
+        Args:
+            messages: List of message dictionaries
+            temperature: Temperature setting
+            max_tokens: Maximum tokens
+            response_format: Optional response format
+
+        Returns:
+            LLM response
+        """
+        kwargs = {
+            "model": f"azure/{self.deployment_name}",
+            "messages": messages,
+            "api_key": self.api_key,
+            "api_base": self.api_base,
+            "api_version": self.api_version,
+            "temperature": temperature,
+            "max_tokens": max_tokens
+        }
+
+        if response_format:
+            kwargs["response_format"] = response_format
+
+        return litellm.completion(**kwargs)
+
     def analyze_transcript(self, transcript: str) -> Dict[str, Any]:
         """Analyze a sales conversation transcript using LiteLLM with LangChain chunking.
 
@@ -61,16 +90,12 @@ class TranscriptAnalyzer:
 
             self.logger.info(f"Calling LiteLLM with Azure deployment: {self.deployment_name}")
 
-            # Call LiteLLM with Azure OpenAI (supports JSON mode)
-            response = litellm.completion(
-                model=f"azure/{self.deployment_name}",
+            # Call LiteLLM with Azure OpenAI (supports JSON mode) with retry logic
+            response = self._call_llm_completion(
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                api_key=self.api_key,
-                api_base=self.api_base,
-                api_version=self.api_version,
                 temperature=self.config.get('azure_openai.temperature', 0.7),
                 max_tokens=self.config.get('azure_openai.max_tokens', 2000),
                 response_format={"type": "json_object"}
@@ -120,11 +145,8 @@ class TranscriptAnalyzer:
             
             user_prompt = requirements_prompt.format(transcript=transcript)
             
-            deployment_name = self.config.get('azure_openai.deployment_name')
-            model = f"azure/{deployment_name}"
-            
-            response = litellm.completion(
-                model=model,
+            # Call with retry logic
+            response = self._call_llm_completion(
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
@@ -158,12 +180,9 @@ class TranscriptAnalyzer:
             recommendations_prompt = self.config.get_prompt('recommendations_prompt')
             
             user_prompt = recommendations_prompt.format(transcript=transcript)
-            
-            deployment_name = self.config.get('azure_openai.deployment_name')
-            model = f"azure/{deployment_name}"
-            
-            response = litellm.completion(
-                model=model,
+
+            # Call with retry logic
+            response = self._call_llm_completion(
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
@@ -197,12 +216,9 @@ class TranscriptAnalyzer:
             summary_prompt = self.config.get_prompt('summary_prompt')
             
             user_prompt = summary_prompt.format(transcript=transcript)
-            
-            deployment_name = self.config.get('azure_openai.deployment_name')
-            model = f"azure/{deployment_name}"
-            
-            response = litellm.completion(
-                model=model,
+
+            # Call with retry logic
+            response = self._call_llm_completion(
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}

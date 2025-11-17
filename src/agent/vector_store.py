@@ -13,6 +13,7 @@ from pymilvus import (
 from src.utils.config_loader import get_config
 from src.utils.logger import setup_logger
 from src.utils.text_chunker import TextChunker
+from src.utils.retry_handler import retry_llm_call
 
 
 class MilvusVectorStore:
@@ -132,6 +133,7 @@ class MilvusVectorStore:
             index_params=index_params
         )
     
+    @retry_llm_call
     def _get_embedding(self, text: str) -> List[float]:
         """Generate embedding for text using LiteLLM with Azure OpenAI.
 
@@ -141,27 +143,22 @@ class MilvusVectorStore:
         Returns:
             Embedding vector
         """
-        try:
-            # Truncate text if too long (8192 tokens ≈ 6000 words ≈ 30000 chars)
-            # Use a safe limit of 20000 characters to avoid token limit
-            max_chars = 20000
-            if len(text) > max_chars:
-                self.logger.warning(f"Text too long ({len(text)} chars), truncating to {max_chars} chars for embedding")
-                text = text[:max_chars]
+        # Truncate text if too long (8192 tokens ≈ 6000 words ≈ 30000 chars)
+        # Use a safe limit of 20000 characters to avoid token limit
+        max_chars = 20000
+        if len(text) > max_chars:
+            self.logger.warning(f"Text too long ({len(text)} chars), truncating to {max_chars} chars for embedding")
+            text = text[:max_chars]
 
-            response = litellm.embedding(
-                model=f"azure/{self.embedding_deployment}",
-                input=[text],
-                api_key=self.api_key,
-                api_base=self.api_base,
-                api_version=self.api_version
-            )
+        response = litellm.embedding(
+            model=f"azure/{self.embedding_deployment}",
+            input=[text],
+            api_key=self.api_key,
+            api_base=self.api_base,
+            api_version=self.api_version
+        )
 
-            return response.data[0]['embedding']
-
-        except Exception as e:
-            self.logger.error(f"Failed to generate embedding: {e}")
-            raise
+        return response.data[0]['embedding']
 
     def chunk_and_display(self, text: str) -> Dict[str, Any]:
         """Chunk text and display statistics (for demonstration).

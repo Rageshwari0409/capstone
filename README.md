@@ -26,6 +26,8 @@ Then open: http://localhost:8000/docs
 - 🤖 AI-powered insights via Azure OpenAI + LiteLLM
 - 🚀 FastAPI REST API
 - 📊 Structured JSON output
+- 🔄 Automatic retry with exponential backoff for rate limit handling
+
 
 ## Project Structure
 
@@ -140,6 +142,23 @@ The agent provides structured analysis including:
 - Cybersecurity Solution Sales Call
 - Marketing Analytics Sales Call
 
+## Rate Limit Handling
+
+The application automatically handles Azure OpenAI rate limits with **exponential backoff retry logic**:
+
+- ✅ Automatic retry on rate limit errors (HTTP 429)
+- ✅ Exponential backoff: 2s → 4s → 8s → 16s → 32s
+- ✅ Up to 5 retry attempts with max 120s total
+- ✅ Detailed logging of retry attempts
+- ✅ No code changes needed - works transparently
+
+**Test rate limit handling:**
+```bash
+python test_rate_limit.py
+```
+
+**See full documentation:** [docs/RATE_LIMIT_HANDLING.md](docs/RATE_LIMIT_HANDLING.md)
+
 ## Troubleshooting
 
 ### Authentication Error
@@ -147,9 +166,19 @@ The agent provides structured analysis including:
 - Get fresh API key from Azure Portal
 - Verify deployment names in Azure OpenAI Studio
 
+### Rate Limit Errors
+- The application automatically retries with exponential backoff
+- Check logs for retry attempts: `tail -f logs/app.log | grep "Backing off"`
+- If persistent, consider upgrading Azure OpenAI quota
+
 ### Module Not Found
 ```bash
-pip install fastapi uvicorn pydantic python-multipart litellm openai pyyaml python-dotenv requests colorlog
+pip install -r requirements.txt
+```
+
+Or install manually:
+```bash
+pip install fastapi uvicorn pydantic python-multipart litellm openai pyyaml python-dotenv requests colorlog backoff
 ```
 
 ### Deployment Not Found
