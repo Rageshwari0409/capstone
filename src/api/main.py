@@ -21,7 +21,6 @@ from src.api.models import (
     ChatResponse
 )
 from src.agent.transcript_analyzer import TranscriptAnalyzer
-from src.agent.audio_processor import AudioProcessor
 from src.agent.vector_store import MilvusVectorStore
 from src.agent.sales_helper_agent import SalesHelperAgent
 from src.agent.chat_agent import ChatAgent
@@ -52,7 +51,6 @@ app.add_middleware(
 
 # Initialize components
 transcript_analyzer = TranscriptAnalyzer()
-audio_processor = AudioProcessor()
 sales_helper_agent = SalesHelperAgent()
 chat_agent = ChatAgent()
 

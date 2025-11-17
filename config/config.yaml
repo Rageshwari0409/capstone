@@ -46,12 +46,6 @@ fastapi:
   description: "API for analyzing sales representative and client conversations"
   version: "1.0.0"
 
-# Audio Processing Configuration
-audio:
-  supported_formats: ["mp3", "wav", "m4a", "ogg"]
-  max_file_size_mb: 25
-  whisper_model: "whisper-1"
-  whisper_deployment: "whisper-1"
 
 # Analysis Configuration
 analysis:

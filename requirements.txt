@@ -20,9 +20,6 @@ langchain-text-splitters==0.3.0
 pyyaml==6.0.1
 python-dotenv==1.0.0
 
-# Audio Processing
-# Note: Azure OpenAI Whisper is used via API, no local dependencies needed
-
 # Utilities
 requests==2.31.0
 
